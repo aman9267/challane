@@ -333,7 +333,7 @@ const Dashboard: React.FC = () => {
           isLoading={loading}
         />
         <StatCard
-          title="Unique Customers"
+          title="Unique Supplier"
           value={dashboardData.uniqueCustomers}
           icon={<PersonIcon />}
           color={theme.palette.info.main}
