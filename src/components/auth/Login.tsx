@@ -110,7 +110,7 @@ const Login: React.FC = () => {
     };
 
     checkRedirectResult();
-  }, [dispatch, navigate]);
+  }, [dispatch, handleAuthSuccess, navigate]);
 
   return (
     <Container component="main" maxWidth="xs">

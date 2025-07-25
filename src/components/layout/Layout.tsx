@@ -29,7 +29,7 @@ import {
   Dashboard as DashboardIcon,
   Receipt as ReceiptIcon,
   Settings as SettingsIcon,
-  Person as PersonIcon,
+
   ChevronLeft as ChevronLeftIcon,
   LocalShipping as SupplierIcon,
 } from '@mui/icons-material';
