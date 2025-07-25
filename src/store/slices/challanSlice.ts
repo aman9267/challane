@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface Product {
   hsnCode: number;
@@ -11,7 +11,7 @@ interface Product {
 export interface Challan {
   id: string;
   userId: string;
-  challanNumber: number;
+  challanNumber: number; // <--- number (not string)
   date: string;
   products: Product[];
   totalAmount: number;
@@ -37,7 +37,7 @@ const initialState: ChallanState = {
 };
 
 const challanSlice = createSlice({
-  name: 'challan',
+  name: "challan",
   initialState,
   reducers: {
     setChallans: (state, action: PayloadAction<Challan[]>) => {
@@ -49,16 +49,19 @@ const challanSlice = createSlice({
     },
     addChallan: (state, action: PayloadAction<Challan>) => {
       state.challans.push(action.payload);
-      state.lastChallanNumber = Math.max(state.lastChallanNumber, action.payload.challanNumber);
+      state.lastChallanNumber = Math.max(
+        state.lastChallanNumber,
+        action.payload.challanNumber
+      );
     },
     updateChallan: (state, action: PayloadAction<Challan>) => {
-      const index = state.challans.findIndex(c => c.id === action.payload.id);
+      const index = state.challans.findIndex((c) => c.id === action.payload.id);
       if (index !== -1) {
         state.challans[index] = action.payload;
       }
     },
     deleteChallan: (state, action: PayloadAction<string>) => {
-      state.challans = state.challans.filter(c => c.id !== action.payload);
+      state.challans = state.challans.filter((c) => c.id !== action.payload);
     },
     setCurrentChallan: (state, action: PayloadAction<Challan | null>) => {
       state.currentChallan = action.payload;
@@ -86,4 +89,4 @@ export const {
   setError,
 } = challanSlice.actions;
 
-export default challanSlice.reducer; 
+export default challanSlice.reducer;

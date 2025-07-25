@@ -1,6 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store/store";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+
 import {
   setChallans as setReduxChallans,
   deleteChallan as deleteReduxChallan,
@@ -33,25 +39,84 @@ import {
   Chip,
   Divider,
   TablePagination,
+  Grid,
+  Stack,
 } from "@mui/material";
+
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import ChallanForm from "./ChallanForm";
+import PrintableChallan from "../PrintableChallan";
 
 const ChallanList: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
-  const { challans } = useSelector((state: RootState) => state.challan as ChallanState);
+  const { challans } = useSelector(
+    (state: RootState) => state.challan as ChallanState
+  );
   const [openForm, setOpenForm] = useState(false);
-  const [selectedChallan, setSelectedChallan] = useState<Challan | undefined>(undefined);
+  const [selectedChallan, setSelectedChallan] = useState<Challan | undefined>(
+    undefined
+  );
+
+  const [printChallan, setPrintChallan] = useState<Challan | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const downloadChallanPDF = async (
+    elementId: string,
+    filename: string = "Challan.pdf"
+  ) => {
+    const input = document.getElementById(elementId);
+    if (!input) return alert("Challan element not found");
+
+    const canvas = await html2canvas(input, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save(filename);
+  };
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [menuChallan, setMenuChallan] = useState<Challan | null>(null);
+
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewChallan, setViewChallan] = useState<Challan | null>(null);
+  const handleView = (challan: Challan) => {
+    setViewChallan(challan);
+    setViewDialogOpen(true);
+  };
+
+  const handleViewClose = () => {
+    setViewDialogOpen(false);
+    setViewChallan(null);
+  };
+
+  const handleMenuOpen = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    challan: Challan
+  ) => {
+    setMenuAnchorEl(event.currentTarget);
+    setMenuChallan(challan);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+    setMenuChallan(null);
+  };
 
   useEffect(() => {
     const fetchChallans = async () => {
@@ -117,7 +182,9 @@ const ChallanList: React.FC = () => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
@@ -246,7 +313,7 @@ const ChallanList: React.FC = () => {
             <TableRow>
               <TableCell>Challan No.</TableCell>
               <TableCell>Date</TableCell>
-              <TableCell>Customer Name</TableCell>
+              <TableCell>Supplier Name</TableCell>
               <TableCell>Phone</TableCell>
               <TableCell align="right">Total Amount</TableCell>
               <TableCell align="center">Actions</TableCell>
@@ -265,6 +332,7 @@ const ChallanList: React.FC = () => {
                   <TableCell>{formatDate(challan.date)}</TableCell>
                   <TableCell>{challan.customerName || "-"}</TableCell>
                   <TableCell>{challan.customerPhone || "-"}</TableCell>
+
                   <TableCell align="right">
                     <Typography variant="body1" fontWeight="medium">
                       {formatCurrency(challan.totalAmount)}
@@ -272,29 +340,182 @@ const ChallanList: React.FC = () => {
                   </TableCell>
                   <TableCell align="center">
                     <IconButton
-                      onClick={() => handleEdit(challan)}
+                      onClick={(e) => handleMenuOpen(e, challan)}
                       color="primary"
                       size="small"
                     >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      onClick={() => handleDelete(challan.id)}
-                      color="error"
-                      size="small"
-                    >
-                      <DeleteIcon />
+                      <MoreVertIcon />
                     </IconButton>
                   </TableCell>
                 </TableRow>
               ))}
+            <Menu
+              anchorEl={menuAnchorEl}
+              open={Boolean(menuAnchorEl)}
+              onClose={handleMenuClose}
+              anchorOrigin={{
+                vertical: "bottom",
+                horizontal: "right",
+              }}
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "right",
+              }}
+            >
+              <MenuItem
+                onClick={() => {
+                  if (menuChallan) handleView(menuChallan);
+                  handleMenuClose();
+                }}
+              >
+                View
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  if (menuChallan) handleEdit(menuChallan);
+                  handleMenuClose();
+                }}
+              >
+                Edit
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  if (menuChallan) {
+                    setPrintChallan(menuChallan);
+                    setTimeout(() => {
+                      downloadChallanPDF("challan-print");
+                    }, 100); // Small delay to ensure component renders
+                  }
+                  handleMenuClose();
+                }}
+              >
+                Print / Download
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  if (menuChallan) handleDelete(menuChallan.id);
+                  handleMenuClose();
+                }}
+                sx={{ color: "error.main" }}
+              >
+                Delete
+              </MenuItem>
+            </Menu>
+
+            {/* Here is challane view model  */}
+            <Dialog
+              open={viewDialogOpen}
+              onClose={handleViewClose}
+              maxWidth="sm"
+              fullWidth
+            >
+              <Box p={3}>
+                <Typography variant="h6" color="primary" gutterBottom>
+                  Challan Details
+                </Typography>
+
+                <Stack direction="row" spacing={4} flexWrap="wrap">
+                  <Stack width={{ xs: "100%", sm: "50%" }} mb={2}>
+                    <Typography variant="subtitle2">Challan Number:</Typography>
+                    <Typography variant="body1">
+                      #{viewChallan?.challanNumber}
+                    </Typography>
+                  </Stack>
+                  <Stack width={{ xs: "100%", sm: "50%" }} mb={2}>
+                    <Typography variant="subtitle2">Date:</Typography>
+                    <Typography variant="body1">
+                      {viewChallan && formatDate(viewChallan.date)}
+                    </Typography>
+                  </Stack>
+                  <Stack width={{ xs: "100%", sm: "50%" }} mb={2}>
+                    <Typography variant="subtitle2">Customer Name:</Typography>
+                    <Typography variant="body1">
+                      {viewChallan?.customerName}
+                    </Typography>
+                  </Stack>
+                  <Stack width={{ xs: "100%", sm: "50%" }} mb={2}>
+                    <Typography variant="subtitle2">Phone:</Typography>
+                    <Typography variant="body1">
+                      {viewChallan?.customerPhone}
+                    </Typography>
+                  </Stack>
+                </Stack>
+
+                <Divider sx={{ my: 3 }} />
+
+                {/* Products Table */}
+                {viewChallan?.products && viewChallan.products.length > 0 && (
+                  <>
+                    <Typography variant="subtitle1" gutterBottom>
+                      Product Details
+                    </Typography>
+
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>
+                            <strong>Product Name</strong>
+                          </TableCell>
+                          <TableCell align="right">
+                            <strong>Qty</strong>
+                          </TableCell>
+                          <TableCell align="right">
+                            <strong>Rate</strong>
+                          </TableCell>
+                          <TableCell align="right">
+                            <strong>Total</strong>
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {viewChallan.products.map((p, i) => (
+                          <TableRow key={i}>
+                            <TableCell>{p.name}</TableCell>
+                            <TableCell align="right">{p.quantity}</TableCell>
+                            <TableCell align="right">
+                              {formatCurrency(p.price)}
+                            </TableCell>
+                            <TableCell align="right">
+                              {formatCurrency(p.price * p.quantity)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <Divider sx={{ my: 2 }} />
+                  </>
+                )}
+
+                <Box display="flex" justifyContent="space-between" mt={2}>
+                  <Typography variant="h6">
+                    Total: {formatCurrency(viewChallan?.totalAmount || 0)}
+                  </Typography>
+                  <Button
+                    onClick={handleViewClose}
+                    variant="outlined"
+                    color="primary"
+                  >
+                    Close
+                  </Button>
+                </Box>
+              </Box>
+            </Dialog>
+
+            {/* challan print */}
+            {/* Hiden Pritn  */}
+            {/* Hidden Print */}
+            <div style={{ display: "none" }}>
+              {printChallan && (
+                <PrintableChallan challan={printChallan} ref={printRef} />
+              )}
+            </div>
             {challans.length === 0 && !loading && (
               <TableRow>
                 <TableCell colSpan={6} align="center">
                   <Box sx={{ py: 3 }}>
                     <Typography variant="body1" color="text.secondary">
-                      No challans found. Create your first challan by clicking the
-                      "Create New Challan" button.
+                      No challans found. Create your first challan by clicking
+                      the "Create New Challan" button.
                     </Typography>
                   </Box>
                 </TableCell>
@@ -344,20 +565,16 @@ const ChallanList: React.FC = () => {
         </Box>
 
         {error && (
-          <Alert 
-            severity="error" 
+          <Alert
+            severity="error"
             sx={{ mb: 2 }}
             action={
-              <Button 
-                color="inherit" 
-                size="small" 
-                onClick={handleRetry}
-              >
+              <Button color="inherit" size="small" onClick={handleRetry}>
                 Retry
               </Button>
             }
           >
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+            <Typography variant="body2" sx={{ whiteSpace: "pre-line" }}>
               {error}
             </Typography>
           </Alert>
@@ -393,10 +610,7 @@ const ChallanList: React.FC = () => {
         fullWidth
         fullScreen={isMobile}
       >
-        <ChallanForm
-          editChallan={selectedChallan}
-          onClose={handleCloseForm}
-        />
+        <ChallanForm editChallan={selectedChallan} onClose={handleCloseForm} />
       </Dialog>
 
       <Snackbar
