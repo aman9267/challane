@@ -57,6 +57,8 @@ const ChallanList: React.FC = () => {
   const { challans } = useSelector(
     (state: RootState) => state.challan as ChallanState
   );
+
+  const { company } = useSelector((state: RootState) => state.company);
   const [openForm, setOpenForm] = useState(false);
   const [selectedChallan, setSelectedChallan] = useState<Challan | undefined>(
     undefined
@@ -378,7 +380,7 @@ const ChallanList: React.FC = () => {
               >
                 Edit
               </MenuItem>
-              <MenuItem
+              {/* <MenuItem
                 onClick={() => {
                   if (menuChallan) {
                     setPrintChallan(menuChallan);
@@ -390,7 +392,7 @@ const ChallanList: React.FC = () => {
                 }}
               >
                 Print / Download
-              </MenuItem>
+              </MenuItem> */}
               <MenuItem
                 onClick={() => {
                   if (menuChallan) handleDelete(menuChallan.id);
@@ -504,9 +506,10 @@ const ChallanList: React.FC = () => {
             {/* challan print */}
             {/* Hiden Pritn  */}
             {/* Hidden Print */}
-            <div style={{ display: "none" }}>
+
+            <div style={{ display: "none" }} id="challan-print">
               {printChallan && (
-                <PrintableChallan challan={printChallan} ref={printRef} />
+                <PrintableChallan challan={printChallan} company={company} />
               )}
             </div>
             {challans.length === 0 && !loading && (

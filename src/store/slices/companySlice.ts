@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface CompanyDetails {
   name: string;
@@ -11,6 +11,7 @@ interface CompanyDetails {
 
 interface CompanyState {
   details: CompanyDetails | null;
+  company: any | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -19,16 +20,20 @@ const initialState: CompanyState = {
   details: null,
   isLoading: false,
   error: null,
+  company: undefined
 };
 
 const companySlice = createSlice({
-  name: 'company',
+  name: "company",
   initialState,
   reducers: {
     setCompanyDetails: (state, action: PayloadAction<CompanyDetails>) => {
       state.details = action.payload;
     },
-    updateCompanyDetails: (state, action: PayloadAction<Partial<CompanyDetails>>) => {
+    updateCompanyDetails: (
+      state,
+      action: PayloadAction<Partial<CompanyDetails>>
+    ) => {
       if (state.details) {
         state.details = { ...state.details, ...action.payload };
       }
@@ -42,5 +47,6 @@ const companySlice = createSlice({
   },
 });
 
-export const { setCompanyDetails, updateCompanyDetails, setLoading, setError } = companySlice.actions;
-export default companySlice.reducer; 
+export const { setCompanyDetails, updateCompanyDetails, setLoading, setError } =
+  companySlice.actions;
+export default companySlice.reducer;
