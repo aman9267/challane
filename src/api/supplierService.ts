@@ -7,7 +7,6 @@ import {
   doc,
   query,
   orderBy,
-  getDoc,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { Supplier } from "../store/slices/supplierSlice";

@@ -1,11 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store/store";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
 import {
   setChallans as setReduxChallans,
@@ -39,7 +37,6 @@ import {
   Chip,
   Divider,
   TablePagination,
-  Grid,
   Stack,
 } from "@mui/material";
 
@@ -47,7 +44,6 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import ChallanForm from "./ChallanForm";
-import PrintableChallan from "../PrintableChallan";
 
 const ChallanList: React.FC = () => {
   const theme = useTheme();
@@ -58,33 +54,13 @@ const ChallanList: React.FC = () => {
     (state: RootState) => state.challan as ChallanState
   );
 
-  const { company } = useSelector((state: RootState) => state.company);
   const [openForm, setOpenForm] = useState(false);
   const [selectedChallan, setSelectedChallan] = useState<Challan | undefined>(
     undefined
   );
 
-  const [printChallan, setPrintChallan] = useState<Challan | null>(null);
-  const printRef = useRef<HTMLDivElement>(null);
 
-  const downloadChallanPDF = async (
-    elementId: string,
-    filename: string = "Challan.pdf"
-  ) => {
-    const input = document.getElementById(elementId);
-    if (!input) return alert("Challan element not found");
-
-    const canvas = await html2canvas(input, { scale: 2 });
-    const imgData = canvas.toDataURL("image/png");
-
-    const pdf = new jsPDF("p", "mm", "a4");
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-    pdf.save(filename);
-  };
+ 
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -507,11 +483,11 @@ const ChallanList: React.FC = () => {
             {/* Hiden Pritn  */}
             {/* Hidden Print */}
 
-            <div style={{ display: "none" }} id="challan-print">
+            {/* <div style={{ display: "none" }} id="challan-print">
               {printChallan && (
                 <PrintableChallan challan={printChallan} company={company} />
               )}
-            </div>
+            </div> */}
             {challans.length === 0 && !loading && (
               <TableRow>
                 <TableCell colSpan={6} align="center">
