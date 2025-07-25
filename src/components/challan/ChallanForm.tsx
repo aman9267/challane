@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { RootState } from "../../store/store";
@@ -8,6 +8,7 @@ import {
   Challan,
   ChallanState,
 } from "../../store/slices/challanSlice";
+import { MenuItem, Select, InputLabel, FormControl } from "@mui/material";
 import { addChallan, updateChallan } from "../../api/challanService";
 import {
   Container,
@@ -32,12 +33,15 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import PrintIcon from "@mui/icons-material/Print";
+import { getSuppliers } from "../../api/supplierService";
+import { Supplier } from "../../store/slices/supplierSlice";
 
 interface Product {
   name: string;
   quantity: number;
   price: number;
   total: number;
+  hsnCode: number;
 }
 
 interface ChallanFormProps {
@@ -62,19 +66,45 @@ const ChallanForm: React.FC<ChallanFormProps> = ({ editChallan, onClose }) => {
       date: new Date().toISOString().split("T")[0],
       products: [],
       totalAmount: 0,
+      hsnCode: 0, // ✅ Add this line
       customerName: "",
       customerPhone: "",
     }
   );
 
-  const [products, setProducts] = useState<Product[]>(
-    editChallan?.products || []
-  );
+const [products, setProducts] = useState<Product[]>(
+  (editChallan?.products || []).map((p) => ({
+    ...p,
+    hsnCode: p.hsnCode ?? 0, // provide default if missing
+  }))
+);
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+
+  const fetchSuppliers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data = await getSuppliers();
+      console.log("Fetched suppliers:", data);
+      setSuppliers(data);
+    } catch (error) {
+      console.error("Error fetching suppliers:", error);
+      setError("Failed to load suppliers. Please try again.");
+      setSuppliers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
 
   const handleBlur = (field: string) => {
     setTouched({ ...touched, [field]: true });
@@ -144,7 +174,10 @@ const ChallanForm: React.FC<ChallanFormProps> = ({ editChallan, onClose }) => {
   };
 
   const addProduct = () => {
-    setProducts([...products, { name: "", quantity: 0, price: 0, total: 0 }]);
+    setProducts([
+      ...products,
+      { name: "", hsnCode: 0, quantity: 0, price: 0, total: 0 },
+    ]);
   };
 
   const removeProduct = (index: number) => {
@@ -179,40 +212,44 @@ const ChallanForm: React.FC<ChallanFormProps> = ({ editChallan, onClose }) => {
         // Update existing challan
         const updateData = {
           date: formData.date || new Date().toISOString().split("T")[0],
-          products: products.map(p => ({
+          products: products.map((p) => ({
             name: p.name,
             quantity: p.quantity,
             price: p.price,
-            total: p.total
+            hsnCode : p.hsnCode,
+            total: p.total,
           })),
           totalAmount: formData.totalAmount || 0,
           customerName: formData.customerName || "",
           customerPhone: formData.customerPhone || "",
         };
-        
+
         // Use the challan service to update
         await updateChallan(editChallan.id, updateData);
-        dispatch(updateChallanAction({
-          ...editChallan,
-          ...updateData
-        }));
+        dispatch(
+          updateChallanAction({
+            ...editChallan,
+            ...updateData,
+          })
+        );
       } else {
         // Create new challan
         const newChallanData = {
           userId: user.uid,
           challanNumber: formData.challanNumber || lastChallanNumber + 1,
           date: formData.date || new Date().toISOString().split("T")[0],
-          products: products.map(p => ({
+          products: products.map((p) => ({
             name: p.name,
             quantity: p.quantity,
             price: p.price,
-            total: p.total
+            hsnCode : p.hsnCode,
+            total: p.total,
           })),
           totalAmount: formData.totalAmount || 0,
           customerName: formData.customerName || "",
           customerPhone: formData.customerPhone || "",
         };
-        
+
         // Use the challan service to add
         const newChallan = await addChallan(newChallanData);
         dispatch(addChallanAction({ ...newChallanData, id: newChallan.id }));
@@ -224,7 +261,7 @@ const ChallanForm: React.FC<ChallanFormProps> = ({ editChallan, onClose }) => {
         setLoading(false);
         if (onClose) onClose();
         // Navigate to dashboard after creating/updating challan
-        navigate('/');
+        navigate("/");
       }, 1000);
     } catch (error: any) {
       console.error("Error saving challan:", error?.message || error);
@@ -301,22 +338,31 @@ const ChallanForm: React.FC<ChallanFormProps> = ({ editChallan, onClose }) => {
               />
             </Stack>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <TextField
-                fullWidth
-                label="Customer Name"
-                value={formData.customerName}
-                onChange={(e) =>
-                  setFormData({ ...formData, customerName: e.target.value })
-                }
-                onBlur={() => handleBlur("customerName")}
-                error={touched.customerName && !formData.customerName?.trim()}
-                helperText={
-                  touched.customerName && !formData.customerName?.trim()
-                    ? "Customer name is required"
-                    : ""
-                }
-                size="small"
-              />
+              <FormControl fullWidth size="small">
+                <InputLabel id="supplier-label">Customer Name</InputLabel>
+                <Select
+                  labelId="supplier-label"
+                  label="Customer Name"
+                  value={formData.customerName}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      customerName: e.target.value,
+                      customerPhone:
+                        suppliers.find((s) => s.name === e.target.value)
+                          ?.phone || "",
+                    })
+                  }
+                  onBlur={() => handleBlur("customerName")}
+                >
+                  {suppliers.map((supplier) => (
+                    <MenuItem key={supplier.id} value={supplier.name}>
+                      {supplier.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
               <TextField
                 fullWidth
                 label="Customer Phone"
@@ -370,6 +416,7 @@ const ChallanForm: React.FC<ChallanFormProps> = ({ editChallan, onClose }) => {
               <TableHead>
                 <TableRow>
                   <TableCell>Product Name</TableCell>
+                  <TableCell>HSN Code</TableCell>
                   <TableCell align="right">Quantity</TableCell>
                   <TableCell align="right">Price (₹)</TableCell>
                   <TableCell align="right">Total (₹)</TableCell>
@@ -392,6 +439,26 @@ const ChallanForm: React.FC<ChallanFormProps> = ({ editChallan, onClose }) => {
                           touched[`product-${index}`] && !product.name.trim()
                         }
                         onBlur={() => handleBlur(`product-${index}`)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={product.hsnCode}
+                        onChange={(e) =>
+                          handleProductChange(
+                            index,
+                            "hsnCode",
+                            Number(e.target.value)
+                          )
+                        }
+                        error={
+                          touched[`hsncode-${index}`] && product.hsnCode <= 0
+                        }
+                        onBlur={() => handleBlur(`hsncode-${index}`)}
+                        inputProps={{ min: 0, step: 1 }}
+                        sx={{ width: "100px" }}
                       />
                     </TableCell>
                     <TableCell align="right">

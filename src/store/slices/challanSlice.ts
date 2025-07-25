@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface Product {
+  hsnCode: number;
   name: string;
   quantity: number;
   price: number;
@@ -14,6 +15,7 @@ export interface Challan {
   date: string;
   products: Product[];
   totalAmount: number;
+  hsnCode?: number;
   customerName: string;
   customerPhone: string;
 }
