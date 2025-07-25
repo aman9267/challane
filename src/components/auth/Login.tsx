@@ -9,8 +9,6 @@ import {
 import { auth, googleProvider } from "../../firebase/config";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  setUser,
-  setToken,
   setLoading,
   setError,
   clearError,
