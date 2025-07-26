@@ -8,11 +8,7 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider } from "../../firebase/config";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  setLoading,
-  setError,
-  clearError,
-} from "../../store/slices/authSlice";
+import { setLoading, setError, clearError } from "../../store/slices/authSlice";
 import { RootState } from "../../store/store";
 import {
   Button,
@@ -112,6 +108,7 @@ const Login: React.FC = () => {
   // ✅ Stable handleAuthSuccess function
   const handleAuthSuccess = useCallback(
     async (user?: any) => {
+      console.log(user);
       try {
         console.log("Handling successful auth:", user);
         // Do something with user or navigation here
@@ -141,11 +138,9 @@ const Login: React.FC = () => {
     checkRedirectResult();
   }, [dispatch, handleAuthSuccess]); // navigate already inside handleAuthSuccess
 
-  // ✅ Optional: run once if needed
   React.useEffect(() => {
     handleAuthSuccess();
   }, [handleAuthSuccess]);
-
   return (
     <Container component="main" maxWidth="xs">
       <Box
